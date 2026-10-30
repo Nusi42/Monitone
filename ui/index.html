@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;">
+  <title>Monitone Settings</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar" aria-label="Settings sections">
+      <div class="brand">
+        <img src="icon.png" alt="" width="32" height="32">
+        <span>Monitone</span>
+      </div>
+      <a class="nav-item" href="#displays" data-page="displays">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></svg>
+        <span>Displays</span>
+      </a>
+      <a class="nav-item" href="#applications" data-page="applications">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-4M8 18V6M12 15V9M16 20V4M20 14v-4"/></svg>
+        <span>Applications</span>
+      </a>
+      <a class="nav-item" href="#rules" data-page="rules">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>App rules</span>
+      </a>
+      <a class="nav-item" href="#general" data-page="general">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+        <span>General</span>
+      </a>
+      <div class="nav-spacer"></div>
+      <a class="nav-item" href="#about" data-page="about">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+        <span>About</span>
+      </a>
+    </nav>
+
+    <main id="content" tabindex="-1"></main>
+  </div>
+
+  <dialog id="confirm">
+    <form method="dialog">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-text"></p>
+      <div class="dialog-buttons">
+        <button value="cancel" class="button">Cancel</button>
+        <button value="ok" id="confirm-ok" class="button accent"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
