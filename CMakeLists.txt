@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-# version.txt is the single source of truth; release-please updates it.
+# version.txt is the single source of truth; tools/release.ps1 updates it.
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" MONITONE_VERSION LIMIT_COUNT 1)
 string(STRIP "${MONITONE_VERSION}" MONITONE_VERSION)
 project(Monitone VERSION ${MONITONE_VERSION} LANGUAGES CXX RC)

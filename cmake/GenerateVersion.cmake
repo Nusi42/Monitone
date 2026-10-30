@@ -1,4 +1,4 @@
-# Writes version.h from version.txt (maintained by release-please) and git state.
+# Writes version.h from version.txt (maintained by tools/release.ps1) and git state.
 #
 #   cmake -DSOURCE_DIR=<repo> -DOUTPUT=<file> -P GenerateVersion.cmake
 #
