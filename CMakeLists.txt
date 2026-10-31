@@ -13,6 +13,13 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS version.txt)
 
 option(MONITONE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
+# The repository's git hooks (.githooks), enabled once per clone.
+execute_process(COMMAND "${CMAKE_COMMAND}" -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GitHooks.cmake" RESULT_VARIABLE git_hooks_result)
+if(NOT git_hooks_result EQUAL 0)
+  message(FATAL_ERROR "cmake/GitHooks.cmake failed")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)

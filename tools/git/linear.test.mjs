@@ -1,4 +1,4 @@
-// Tests for the linear-history pre-push check: node --test tools/git/
+// Tests for the linear-history pre-push check: node --test "tools/git/*.test.mjs"
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";

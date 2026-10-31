@@ -41,13 +41,17 @@ Versioning, releases and commit messages: see [CONTRIBUTING.md](../CONTRIBUTING.
 `main` keeps a linear history: branches are combined by rebasing onto the
 target and fast-forwarding, never with a merge commit. The pre-push hook
 refuses merge commits in what a push adds (merge commits already on the remote
-stay). It needs Node.js; enable it once per clone:
+stay). It needs Node.js. The first CMake configure of a clone enables the
+hooks (`cmake/GitHooks.cmake` sets `core.hooksPath` to `.githooks`; a different
+value is kept, with a warning). Without a build, enable them once per clone:
 
 ```
 git config core.hooksPath .githooks
 ```
 
-Its tests push to temporary repositories through the real hook:
+The tests push to temporary repositories through the real hook and run
+`cmake/GitHooks.cmake` on temporary repositories (skipped without `cmake` on
+PATH):
 
 ```
 node --test "tools/git/*.test.mjs"

@@ -20,8 +20,10 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
   the target and fast-forwarding (`git rebase main`, then
   `git switch main && git merge --ff-only <branch>`), never with a merge
   commit. The pre-push hook `.githooks/pre-push` refuses merge commits in what
-  a push adds (old merge commits on the remote stay). Enable it once per clone
-  with `git config core.hooksPath .githooks`; never push with `--no-verify`.
+  a push adds (old merge commits on the remote stay). The first CMake configure
+  of a clone sets `core.hooksPath` to `.githooks` (`cmake/GitHooks.cmake`);
+  without a build, `git config core.hooksPath .githooks`. Never push with
+  `--no-verify`.
 - **Never commit personal data:** no real names, e-mail addresses (use the
   GitHub noreply address), locations, local user paths or session links.
 - **Commit messages follow Conventional Commits** (`feat:`, `fix:`, `perf:`,
@@ -63,8 +65,9 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
 | `installer/` | `Monitone.nsi` (NSIS 3), `Monitone.wxs` (WiX 5 + Util ext); both per-user, no admin |
 | `docs/release-notes/` | Optional `X.Y.Z.md` intro for a release's notes (required for the first release) |
 | `tools/ui-preview/` | Renders the UI in Chromium with `mock-bridge.js`; also makes README screenshots |
-| `.githooks/pre-push`, `tools/git/` | Linear-history check before every push (`check-linear.mjs`, logic in `linear.mjs`, tests in `linear.test.mjs`) |
+| `.githooks/pre-push`, `tools/git/` | Linear-history check before every push (`check-linear.mjs`, logic in `linear.mjs`, tests in `linear.test.mjs`, `hooks-setup.test.mjs`) |
 | `tools/icon/make_icon.py` | Regenerates all icons from SVG (needs rsvg-convert, icotool) |
+| `cmake/GitHooks.cmake` | Sets `core.hooksPath` to `.githooks` at configure time (keeps a different value, warns) |
 | `cmake/GenerateVersion.cmake` | `version.h` from `version.txt` + git state (release vs. `+g<hash>[.dirty]`) |
 
 ## Technical facts and pitfalls
