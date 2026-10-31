@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
-# version.txt is the single source of truth; tools/release.ps1 updates it.
+# version.txt is the single source of truth; tools/publish-release.ps1 updates it.
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" MONITONE_VERSION LIMIT_COUNT 1)
 string(STRIP "${MONITONE_VERSION}" MONITONE_VERSION)
+# Release candidates are built before version.txt is updated (tools/build-release.ps1).
+set(MONITONE_RELEASE_VERSION "" CACHE STRING "Build as this release version (X.Y.Z); empty for development builds")
+if(MONITONE_RELEASE_VERSION)
+  set(MONITONE_VERSION "${MONITONE_RELEASE_VERSION}")
+endif()
 project(Monitone VERSION ${MONITONE_VERSION} LANGUAGES CXX RC)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS version.txt)
 
@@ -51,6 +56,7 @@ set(MONITONE_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(MONITONE_VERSION_HEADER "${MONITONE_GENERATED_DIR}/version.h")
 set(MONITONE_VERSION_COMMAND
   "${CMAKE_COMMAND}" -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${MONITONE_VERSION_HEADER}
+  -DRELEASE_VERSION=${MONITONE_RELEASE_VERSION}
   -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateVersion.cmake")
 execute_process(COMMAND ${MONITONE_VERSION_COMMAND})
 add_custom_target(monitone_version

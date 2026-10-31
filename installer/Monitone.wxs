@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Monitone MSI package (WiX Toolset 5). Built by tools/build-release.ps1:
+
+    wix build installer\Monitone.wxs -arch x64 -ext WixToolset.Util.wixext
+      -d Version=X.Y.Z -d BinDir=<folder with the binaries> -o <package.msi>
+
+  Per-user installation without administrator rights, like the NSIS setup.
+  The UpgradeCode must never change.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="Monitone"
+           Manufacturer="Monitone contributors"
+           Version="$(var.Version)"
+           UpgradeCode="FCD516CC-7F0D-43E5-B7B0-DF5B425FBD4D"
+           Scope="perUser"
+           Language="1033">
+    <SummaryInformation Description="Monitone $(var.Version)" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Monitone is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="Monitone.ico" SourceFile="$(sys.SOURCEFILEDIR)..\res\Monitone.ico" />
+    <Property Id="ARPPRODUCTICON" Value="Monitone.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Nusi42/Monitone" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <!-- Ask a running Monitone to exit; it restores the Windows audio settings on exit. -->
+    <util:CloseApplication Id="CloseMonitone" Target="Monitone.exe" CloseMessage="yes" RebootPrompt="no" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="Monitone" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Files in the user profile need a registry key path (ICE38). -->
+    <Component Id="Application" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="MonitoneExe" Source="$(var.BinDir)\Monitone.exe" />
+      <File Id="MonitoneSettingsDll" Source="$(var.BinDir)\MonitoneSettings.dll" />
+      <File Id="License" Source="$(sys.SOURCEFILEDIR)..\LICENSE" Name="LICENSE.txt" />
+      <RegistryValue Root="HKCU" Key="Software\Monitone\Installer" Name="Application" Type="integer" Value="1"
+                     KeyPath="yes" />
+      <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+      <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+    </Component>
+
+    <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder" Guid="*">
+      <Shortcut Id="MonitoneShortcut" Name="Monitone" Target="[#MonitoneExe]" WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue Root="HKCU" Key="Software\Monitone\Installer" Name="Shortcut" Type="integer" Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <!-- On uninstall (not upgrade): remove "Start with Windows". -->
+    <SetProperty Id="RemoveAutostart" Sequence="execute" Before="RemoveAutostart"
+                 Value="&quot;[System64Folder]reg.exe&quot; delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v Monitone /f" />
+    <CustomAction Id="RemoveAutostart" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+
+    <!-- After an interactive installation: start Monitone. -->
+    <Property Id="WixShellExecTarget" Value="[#MonitoneExe]" />
+    <CustomAction Id="StartMonitone" BinaryRef="Wix4UtilCA_X64" DllEntry="WixShellExec"
+                  Impersonate="yes" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RemoveAutostart" Before="InstallFinalize"
+              Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+      <Custom Action="StartMonitone" After="InstallFinalize"
+              Condition="NOT REMOVE AND UILevel &gt; 3" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>

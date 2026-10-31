@@ -24,18 +24,33 @@ notification area and does this for you, for every program.
 
 ## Installation
 
-1. Download the latest `Monitone-x.y.z-x64.zip` from the
-   [Releases page](https://github.com/Nusi42/Monitone/releases).
-2. Unpack it into a folder of your choice, for example
-   `C:\Users\<you>\AppData\Local\Programs\Monitone`. Keep `Monitone.exe` and
-   `MonitoneSettings.dll` together in the same folder.
-3. Start `Monitone.exe`. The Monitone icon, a screen with a sound wave,
-   appears in the notification area next to the clock. If you don't see it,
-   click the small arrow there to show hidden icons.
+Download the latest release from the
+[Releases page](https://github.com/Nusi42/Monitone/releases). Pick one:
+
+- **`Monitone-x.y.z-x64-setup.exe`** (recommended): run it and follow the
+  steps.
+- **`Monitone-x.y.z-x64.msi`**: the same as an MSI package, for example for
+  managed PCs.
+- **`Monitone-x.y.z-x64.zip`**: portable. Unpack it into a folder of your
+  choice and start `Monitone.exe`. Keep `Monitone.exe` and
+  `MonitoneSettings.dll` together in the same folder.
+
+Both installers install Monitone for you only and need no administrator
+rights. To update, install the new version over the old one; your settings are
+kept.
+
+When Monitone starts for the first time, it opens its settings. Afterwards
+the Monitone icon, a screen with a sound wave, sits in the notification area
+next to the clock. If you don't see it, click the small arrow there to show
+hidden icons.
+
+Windows SmartScreen may warn that the publisher is unknown because Monitone
+is not code-signed yet. Choose *More info*, then *Run anyway*.
 
 ## First steps
 
-1. Double-click the Monitone icon to open the settings.
+1. Double-click the Monitone icon to open the settings (the first time, they
+   open by themselves).
 2. On the **Displays** page, choose the speakers for each screen. Click
    *Identify displays* if you are not sure which screen is which.
 3. Click the speaker button next to a screen to hear a short test beep on its
@@ -92,6 +107,12 @@ screen, balance, pause and exit. While paused, the icon turns grey.
   file to keep a backup.
 
 ## Uninstalling
+
+If you used the setup or the MSI package, uninstall Monitone in Windows
+*Settings > Apps > Installed apps*. Your settings in `%APPDATA%\Monitone` are
+kept; delete that folder if you want to remove them too.
+
+If you used the zip:
 
 1. Open the settings and turn off *Start with Windows*.
 2. Right-click the Monitone icon and choose *Exit*.

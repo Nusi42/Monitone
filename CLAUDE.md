@@ -10,7 +10,8 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
 - **Windows 10/11 only.** No other platforms. MinGW cross-compile from Linux
   and the Chromium UI preview are kept purely as developer tools.
 - **No GitHub Actions / CI.** Releases are built on the owner's PC with
-  `tools\release.ps1`. Do not add workflows.
+  `tools\build-release.ps1`, tested, then published with
+  `tools\publish-release.ps1`. Do not add workflows.
 - **Until the first release exists, push directly to `main`.** No PRs needed
   until then. After the first release: ask the owner how to proceed.
 - **Commit messages follow Conventional Commits** (`feat:`, `fix:`, `perf:`,
@@ -47,7 +48,10 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
 | `src/IdentifyOverlay.*`, `src/TestTone.*` | Display number overlay, WASAPI test tone (used by the DLL) |
 | `ui/` | Settings UI: `index.html`, `app.css`, `app.js` (embedded into the DLL as RCDATA) |
 | `res/` | Icons (`.ico`, SVG sources), `.rc` files, manifest, `.def` for DLL exports |
-| `tools/release.ps1` | Local release: version, changelog, commit, tag, MSVC build, zip, optional GitHub release |
+| `tools/build-release.ps1` | Release candidate: next version, notes, MSVC build, zip + NSIS setup + MSI in `build\release-candidate\dist`; no git changes |
+| `tools/publish-release.ps1` | Publishes the tested candidate: version.txt, CHANGELOG, commit, tag, push, GitHub release via `gh` |
+| `installer/` | `Monitone.nsi` (NSIS 3), `Monitone.wxs` (WiX 5 + Util ext); both per-user, no admin |
+| `docs/release-notes/` | Optional `X.Y.Z.md` intro for a release's notes (required for the first release) |
 | `tools/ui-preview/` | Renders the UI in Chromium with `mock-bridge.js`; also makes README screenshots |
 | `tools/icon/make_icon.py` | Regenerates all icons from SVG (needs rsvg-convert, icotool) |
 | `cmake/GenerateVersion.cmake` | `version.h` from `version.txt` + git state (release vs. `+g<hash>[.dirty]`) |
@@ -110,9 +114,10 @@ UI check without Windows: `node tools/ui-preview/preview.mjs build/ui-preview`
 
 ## Release
 
-`tools\release.ps1 -DryRun`, then `tools\release.ps1` (local) or
-`tools\release.ps1 -Publish` (push + GitHub release via `gh`). Next release
-will be 0.2.0. Details: `CONTRIBUTING.md`.
+`tools\build-release.ps1 -DryRun`, then `tools\build-release.ps1` (builds
+the candidate into `build\release-candidate\dist`, no git changes), the owner tests,
+then `tools\publish-release.ps1`. The first release is 0.1.0. Details:
+`CONTRIBUTING.md`.
 
 ## Status at handover
 
@@ -130,8 +135,8 @@ Everything is on `main`. Verified only on Linux:
    from `Monitone.exe` (Process Explorer) and `msedgewebview2.exe` must exit.
 6. Test tone, Identify displays, Start with Windows, tray icon at 125/150 %
    scaling, exit with "Undo changes on exit".
-7. `tools\release.ps1 -DryRun` and a local release (the script has not been
-   executed yet either).
+7. `tools\build-release.ps1` and `tools\publish-release.ps1` for the first
+   release.
 
 A small unload test harness was used under Wine but is not in the repo: load
 `MonitoneSettings.dll`, call `MonitoneSettingsOpen` (with dummy host
@@ -141,7 +146,7 @@ adding as `tools/unload-test/` and running on Windows with real WebView2.
 
 ## Backlog (ideas discussed, not decided)
 
-- Code signing in `release.ps1` (SmartScreen)
+- Code signing in `build-release.ps1` (SmartScreen)
 - Installer or winget package
 - German README
 - Remember settings window size and position

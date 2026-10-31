@@ -21,7 +21,7 @@ cmake --build build
 `-DMONITONE_WARNINGS_AS_ERRORS=ON` turns warnings into errors (`/W4 /WX` or
 `-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wold-style-cast -Werror`).
 Formatting follows `.clang-format`. The MinGW build is a developer check only;
-releases are built with MSVC by `tools\release.ps1` (see CONTRIBUTING.md).
+releases are built with MSVC by `tools\build-release.ps1` (see CONTRIBUTING.md).
 
 The settings UI can be developed in a browser, with sample data instead of the
 real application:

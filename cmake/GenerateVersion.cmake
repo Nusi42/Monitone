@@ -1,16 +1,22 @@
-# Writes version.h from version.txt (maintained by tools/release.ps1) and git state.
+# Writes version.h from version.txt (maintained by tools/publish-release.ps1) and git state.
 #
-#   cmake -DSOURCE_DIR=<repo> -DOUTPUT=<file> -P GenerateVersion.cmake
+#   cmake -DSOURCE_DIR=<repo> -DOUTPUT=<file> [-DRELEASE_VERSION=X.Y.Z] -P GenerateVersion.cmake
 #
 # Release builds (HEAD is tag v<version>, clean tree) get the plain version,
 # everything else gets SemVer build metadata, e.g. 0.3.0+g1a2b3c4.dirty, and
-# the VS_FF_PRERELEASE flag in the version resource.
+# the VS_FF_PRERELEASE flag in the version resource. RELEASE_VERSION builds the
+# release candidate for a version that is tagged only after testing
+# (tools/build-release.ps1).
 
 cmake_minimum_required(VERSION 3.20)
 
 set(dirty_result 0)
-file(STRINGS "${SOURCE_DIR}/version.txt" MONITONE_VERSION LIMIT_COUNT 1)
-string(STRIP "${MONITONE_VERSION}" MONITONE_VERSION)
+if(RELEASE_VERSION)
+  set(MONITONE_VERSION "${RELEASE_VERSION}")
+else()
+  file(STRINGS "${SOURCE_DIR}/version.txt" MONITONE_VERSION LIMIT_COUNT 1)
+  string(STRIP "${MONITONE_VERSION}" MONITONE_VERSION)
+endif()
 if(NOT MONITONE_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
   message(FATAL_ERROR "version.txt must contain MAJOR.MINOR.PATCH, found '${MONITONE_VERSION}'")
 endif()
@@ -37,6 +43,10 @@ if(GIT_FOUND)
   else()
     set(MONITONE_GIT_REVISION "")
   endif()
+endif()
+
+if(RELEASE_VERSION)
+  set(is_release TRUE)
 endif()
 
 if(is_release OR MONITONE_GIT_REVISION STREQUAL "")
