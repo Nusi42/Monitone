@@ -1,0 +1,2 @@
+# Git hooks run with sh; keep their line endings LF on every platform.
+.githooks/* text eol=lf

@@ -93,3 +93,6 @@ tools\publish-release.ps1         # commits, tags, pushes, creates the GitHub re
 
 - C++20, formatted with the repository `.clang-format`.
 - Build with `-DMONITONE_WARNINGS_AS_ERRORS=ON` before pushing.
+- Keep history linear: update a branch with `git rebase main`, not by merging
+  `main` into it. `git config core.hooksPath .githooks` enables the pre-push
+  hook that refuses merge commits (see [docs/BUILDING.md](docs/BUILDING.md)).
