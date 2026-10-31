@@ -97,8 +97,9 @@ screen, balance, pause and exit. While paused, the icon turns grey.
 - Programs that are set to one fixed output device in their own settings (for
   example music production software) are not moved. Set them to the Windows
   default device if you want Monitone to move them.
-- If a program has windows on two screens, the window you are using decides.
-  Windows treats all sound of one program as a single stream.
+- If a program has windows on two screens, for example two browser windows,
+  the window you started playback in decides, and the sound stays with it
+  while it plays. Windows treats all sound of one program as a single stream.
 - When you exit Monitone, it puts every program back on the Windows default
   speakers. You can turn this off on the **General** page.
 - The settings window is only loaded while it is open, so in the background

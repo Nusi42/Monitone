@@ -48,6 +48,12 @@ RECT WindowBounds(HWND window) {
   return bounds;
 }
 
+DWORD WindowProcess(HWND window) {
+  DWORD pid = 0;
+  ::GetWindowThreadProcessId(window, &pid);
+  return pid;
+}
+
 std::wstring WindowTitle(HWND window) {
   std::array<wchar_t, 256> buffer{};
   const int length = ::GetWindowTextW(window, buffer.data(), static_cast<int>(buffer.size()));
@@ -68,12 +74,16 @@ void Engine::Tick() {
   std::vector<RouteReport> report;
   std::unordered_set<DWORD> seenPids;
   std::unordered_set<std::wstring> seenSessions;
+  std::unordered_set<DWORD> playingPids;
+  for (const AudioSession& session : sessions) {
+    if (session.active) playingPids.insert(session.pid);
+  }
 
   for (const AudioSession& session : sessions) {
     if (session.pid == ownPid) continue;
     seenSessions.insert(session.instanceId);
     const auto [pidIt, firstOfProcess] = seenPids.insert(session.pid);
-    RouteReport entry = Evaluate(session, firstOfProcess, apply);
+    RouteReport entry = Evaluate(session, firstOfProcess, playingPids.contains(session.pid), apply);
     if (firstOfProcess) {
       report.push_back(std::move(entry));
     } else if (entry.playing) {
@@ -87,10 +97,34 @@ void Engine::Tick() {
   std::erase_if(routed_,
                 [&](const auto& item) { return !seenPids.contains(item.first) && !IsProcessAlive(item.first); });
   std::erase_if(balanced_, [&](const auto& item) { return !seenSessions.contains(item.first); });
+  std::erase_if(locks_, [&](const auto& item) { return !seenPids.contains(item.first); });
   report_ = std::move(report);
 }
 
-RouteReport Engine::Evaluate(const AudioSession& session, bool firstOfProcess, bool apply) {
+// Browsers play all tabs of all their windows through one audio process, so
+// the window in front is not necessarily the one playing. The window that is
+// in front when playback starts is: it is kept until playback starts again or
+// the window goes away. Programs with one window are not affected.
+HWND Engine::RepresentativeWindow(DWORD pid, bool playing) {
+  const HWND candidate = windows_.WindowForProcess(pid);
+  const auto it = locks_.find(pid);
+  if (candidate == nullptr) {
+    if (it != locks_.end()) locks_.erase(it);
+    return nullptr;
+  }
+  if (it != locks_.end()) {
+    WindowLock& lock = it->second;
+    const bool started = playing && !lock.playing;
+    const bool valid = ::IsWindow(lock.window) && ::IsWindowVisible(lock.window) &&
+                       WindowProcess(lock.window) == WindowProcess(candidate);
+    lock.playing = playing;
+    if (valid && !started) return lock.window;
+  }
+  locks_.insert_or_assign(pid, WindowLock{.window = candidate, .playing = playing});
+  return candidate;
+}
+
+RouteReport Engine::Evaluate(const AudioSession& session, bool firstOfProcess, bool playing, bool apply) {
   RouteReport report{.pid = session.pid,
                      .exe = windows_.ExeName(session.pid),
                      .exePath = ProcessImagePath(session.pid),
@@ -98,7 +132,7 @@ RouteReport Engine::Evaluate(const AudioSession& session, bool firstOfProcess, b
                      .playing = session.active};
   if (report.exe.empty()) report.exe = std::format(L"pid {}", session.pid);
 
-  const HWND window = windows_.WindowForProcess(session.pid);
+  const HWND window = RepresentativeWindow(session.pid, playing);
   const MonitorInfo* monitor = window != nullptr ? monitors_.FromWindow(window) : nullptr;
   if (window != nullptr) report.windowTitle = WindowTitle(window);
   if (monitor != nullptr) report.monitor = monitors_.Label(*monitor);

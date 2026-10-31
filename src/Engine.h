@@ -48,7 +48,14 @@ class Engine {
     std::vector<float> original;  // channel volumes before we touched the session
   };
 
-  [[nodiscard]] RouteReport Evaluate(const AudioSession& session, bool firstOfProcess, bool apply);
+  // The window a process's sound belongs to, kept while that window exists.
+  struct WindowLock {
+    HWND window = nullptr;
+    bool playing = false;
+  };
+
+  [[nodiscard]] HWND RepresentativeWindow(DWORD pid, bool playing);
+  [[nodiscard]] RouteReport Evaluate(const AudioSession& session, bool firstOfProcess, bool playing, bool apply);
   void ApplyRoute(DWORD pid, std::wstring_view target, RouteReport& report);
   void ApplyBalance(const AudioSession& session, StereoGain gain, RouteReport& report);
   void ResetBalance(const AudioSession& session);
@@ -60,6 +67,7 @@ class Engine {
   ProcessWindowMap windows_;
   std::unordered_map<DWORD, std::wstring> routed_;           // pid -> endpoint we assigned
   std::unordered_map<std::wstring, BalanceState> balanced_;  // session instance id -> state
+  std::unordered_map<DWORD, WindowLock> locks_;              // session pid -> window
   std::vector<RouteReport> report_;
 };
 
