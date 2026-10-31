@@ -1,0 +1,19 @@
+name: Feature request
+description: An idea that would make Monitone more useful.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: Describe the situation, not only the solution. Your screens, speakers and programs help.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could Monitone help?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?

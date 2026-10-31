@@ -121,6 +121,12 @@ If you used the zip:
    of the settings window). Delete `%APPDATA%\Monitone` too if you also want
    to remove your settings.
 
+## Feedback
+
+Questions and setup help go to
+[Discussions](https://github.com/Nusi42/Monitone/discussions); bugs and ideas
+to [Issues](https://github.com/Nusi42/Monitone/issues/new/choose).
+
 ## License
 
 Monitone is free software under the GNU Affero General Public License v3.0 or

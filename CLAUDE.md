@@ -12,8 +12,12 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
 - **No GitHub Actions / CI.** Releases are built on the owner's PC with
   `tools\build-release.ps1`, tested, then published with
   `tools\publish-release.ps1`. Do not add workflows.
-- **Until the first release exists, push directly to `main`.** No PRs needed
-  until then. After the first release: ask the owner how to proceed.
+- **The repository is public.** `main` is protected by the ruleset "Protect
+  main" (pull requests, squash merge only, no force push or deletion); the
+  owner can bypass it, which `tools\publish-release.ps1` relies on. Ask the
+  owner whether to push directly or open a PR. GitHub Actions is disabled.
+- **Never commit personal data:** no real names, e-mail addresses (use the
+  GitHub noreply address), locations, local user paths or session links.
 - **Commit messages follow Conventional Commits** (`feat:`, `fix:`, `perf:`,
   `refactor:`, `docs:`, `build:`, `chore:`, ...). The release script derives
   the version and changelog from them. End commit messages with the
@@ -150,11 +154,10 @@ adding as `tools/unload-test/` and running on Windows with real WebView2.
 - Installer or winget package
 - German README
 - Remember settings window size and position
-- Issue template for bug reports
 - Tray icon animation while routing
 
 ## Housekeeping for the owner on GitHub
 
-- Delete branch `ccr-862583c2-cb6zxq` (identical to `main`; could not be
-  deleted from the cloud session).
-- Delete the old repository and the old failed Actions runs.
+- Delete the old repository if it still exists.
+- Ask GitHub Support to purge unreachable commits and cached views of
+  `github.com/Nusi42/Monitone` (history was rewritten before going public).

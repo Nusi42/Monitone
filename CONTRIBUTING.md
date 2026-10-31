@@ -1,5 +1,32 @@
 # Contributing
 
+Thanks for helping. Monitone is a small project with one maintainer, so short,
+focused changes are easiest to review.
+
+## Questions, bugs and ideas
+
+- Questions and setup help: [Discussions](https://github.com/Nusi42/Monitone/discussions).
+- Bugs and feature requests: [open an issue](https://github.com/Nusi42/Monitone/issues/new/choose)
+  with the form. For bugs, your screens, speakers and the affected program
+  matter most.
+- Security problems: privately, see [SECURITY.md](SECURITY.md).
+
+Everyone follows the [code of conduct](CODE_OF_CONDUCT.md).
+
+## Pull requests
+
+1. For anything larger than a small fix, open an issue first so we can agree
+   on the approach.
+2. Fork, create a branch, make the change. Building is described in
+   [docs/BUILDING.md](docs/BUILDING.md), the design in
+   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+3. Build with `-DMONITONE_WARNINGS_AS_ERRORS=ON` and test on Windows.
+4. Open the pull request with a title in Conventional Commits format (below)
+   and fill in the checklist.
+
+`main` is protected: changes arrive through pull requests and are
+squash-merged. There is no CI; the maintainer builds and tests locally.
+
 ## Commit messages
 
 Commits on `main` follow [Conventional Commits](https://www.conventionalcommits.org/).

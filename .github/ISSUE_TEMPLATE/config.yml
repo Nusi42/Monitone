@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help
+    url: https://github.com/Nusi42/Monitone/discussions
+    about: Ask how to set something up, or share how you use Monitone.
+  - name: Security problem
+    url: https://github.com/Nusi42/Monitone/security/advisories/new
+    about: Please report security problems privately, not as an issue.

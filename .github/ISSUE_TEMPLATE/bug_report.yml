@@ -1,0 +1,63 @@
+name: Bug report
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Please check the
+        [Good to know](https://github.com/Nusi42/Monitone#good-to-know) section of the
+        README first: some programs only switch speakers when playback restarts.
+  - type: input
+    id: version
+    attributes:
+      label: Monitone version
+      description: Shown on the About page of the settings.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: "Press Win+R, type `winver`, press Enter."
+      placeholder: "Windows 11 24H2 (build 26100)"
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Screens and speakers
+      description: How many screens, which speakers belong to which screen, and the Balance mode on the General page.
+      placeholder: |
+        Display 1 (left): monitor speakers (NVIDIA High Definition Audio)
+        Display 2 (right): USB speakers
+        Balance: off
+    validations:
+      required: true
+  - type: input
+    id: program
+    attributes:
+      label: Affected program
+      description: The program whose sound goes wrong, as shown on the Applications page.
+      placeholder: "chrome.exe"
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do?
+      placeholder: |
+        1. Play a video in Chrome on Display 1
+        2. Drag the window to Display 2
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots of the Applications page help a lot.
