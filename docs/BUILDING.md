@@ -54,18 +54,38 @@ per clone:
 git config core.hooksPath .githooks
 ```
 
-- **pre-commit:** the staged version of every added or changed C++ file must
-  match `.clang-format`. It only checks; run `clang-format -i` yourself. It
+- **pre-commit:** the private-data guard on the staged files (below); the
+  staged version of every added or changed C++ file must match
+  `.clang-format`. It only checks; run `clang-format -i` yourself. It
   uses `clang-format` from PATH, else the one in Visual Studio
   (`VC\Tools\Llvm`), and skips the check with a notice when there is none.
 - **commit-msg:** the subject follows Conventional Commits with a type from
   [CONTRIBUTING.md](../CONTRIBUTING.md) (at most 72 characters); no session
-  trailers or claude.ai links.
+  trailers or claude.ai links; the guard and the identity check on the message
+  and the author and committer about to be recorded.
 - **pre-push:** `tools/git/push-plan.mjs` decides from the checkout's role and
   the remote's URL (next section). Every push it allows checks that `main`
   keeps a linear history: branches are combined by rebasing onto the target
   and fast-forwarding, never with a merge commit, so the hook refuses merge
-  commits in what a push adds (merge commits already on the remote stay).
+  commits in what a push adds (merge commits already on the remote stay). It
+  also runs the guard and the identity check on the pushed commits (authors,
+  committers, messages, added lines).
+
+**Private-data guard and identity** (`tools/git/check-private.mjs`):
+
+- The guard refuses matches of a patterns file outside the repository (one
+  regular expression per line, `#` comments, case-insensitive; the base64
+  forms of literal patterns are searched too). The file is named by
+  `MONITONE_PRIVATE_PATTERNS` or the git config key
+  `monitone.privatePatterns`; without one the guard passes with a notice.
+  Findings show only the first character of a match. Never copy the patterns
+  file or its values into the repository.
+- Where the git config sets `monitone.identity` (`Name <address>`), every
+  author and committer must be exactly that identity; set `user.name` and
+  `user.email` to match. Without the key nothing is checked.
+- `node tools/git/check-private.mjs` checks every tracked file (part of
+  `tools/check.mjs`); `--staged`, `--message <file>` and `--push` are the hook
+  modes.
 
 The tests commit and push in temporary repositories through the real hooks
 and run `cmake/Checkout.cmake` there (those tests are skipped without `cmake`
@@ -121,6 +141,17 @@ Setup, run from an existing work folder (its `origin` is the master):
 ```
 node tools/git/work-folders.mjs guard-master   # mark origin as the master, turn its hooks on
 node tools/git/work-folders.mjs create <n>     # clone the master into ../Monitone.win<n> on WIN<n>
+```
+
+The master's local git config holds the commit identity and the patterns
+file; `create` copies `user.name`, `user.email`, `monitone.identity` and
+`monitone.privatePatterns` from it into the new work folder:
+
+```
+git -C <master> config user.name "<name>"
+git -C <master> config user.email "<address>"
+git -C <master> config monitone.identity "<name> <<address>>"
+git -C <master> config monitone.privatePatterns "<patterns file>"
 ```
 
 Why: the GitHub remote and its credentials live in one checkout that is

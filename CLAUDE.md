@@ -3,7 +3,7 @@
 Monitone is a Windows tray application: every program plays on the speakers of
 the screen its window is on. Optional left/right balance for a single speaker
 set, per-app rules, and a modern settings window. C++20, Win32, Core Audio,
-WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
+WebView2. Owner: the repository owner (experienced C++/Win32 developer).
 
 ## Decisions already made (do not reopen without being asked)
 
@@ -33,15 +33,23 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
   `git switch main && git merge --ff-only <branch>`), never with a merge
   commit. The pre-push hook `.githooks/pre-push` refuses merge commits in what
   a push adds (old merge commits on the remote stay).
-- **Git hooks** in `.githooks`: pre-commit (staged C++ matches
-  `.clang-format`), commit-msg (Conventional Commits subject, no session
-  links), pre-push (`tools/git/push-plan.mjs` decides from the checkout's role
-  and the remote: linear history everywhere, the full check from a work
-  folder, refusals). The first CMake configure of a clone sets
+- **Git hooks** in `.githooks`: pre-commit (private-data guard on the staged
+  files, staged C++ matches `.clang-format`), commit-msg (Conventional Commits
+  subject, no session links, guard and identity check), pre-push
+  (`tools/git/push-plan.mjs` decides from the checkout's role and the remote:
+  guard, identity check and linear history on the pushed commits everywhere,
+  the full check from a work folder, the guard on every tracked file from the
+  master, refusals). The first CMake configure of a clone sets
   `core.hooksPath` to `.githooks` (`cmake/Checkout.cmake`); the master gets it
   from `node tools/git/work-folders.mjs guard-master`. Never use `--no-verify`.
 - **Never commit personal data:** no real names, e-mail addresses (use the
-  GitHub noreply address), locations, local user paths or session links.
+  GitHub noreply address), locations, local user paths or session links. The
+  private-data guard (`tools/git/check-private.mjs`) refuses matches of the
+  owner's patterns file, which lives outside the repository (named by the git
+  config key `monitone.privatePatterns`; never copy it or its values into the
+  repository). Every commit carries the public identity: where the local git
+  config sets `monitone.identity`, the hooks refuse any other author or
+  committer.
 - **Commit messages follow Conventional Commits** (`feat:`, `fix:`, `perf:`,
   `refactor:`, `docs:`, `build:`, `chore:`, ...). The release script derives
   the version and changelog from them. End commit messages with the
@@ -82,7 +90,7 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
 | `installer/` | `Monitone.nsi` (NSIS 3), `Monitone.wxs` (WiX 5 + Util ext); both per-user, no admin |
 | `docs/release-notes/` | Optional `X.Y.Z.md` intro for a release's notes (required for the first release) |
 | `tools/ui-preview/` | Renders the UI in Chromium with `mock-bridge.js`; also makes README screenshots |
-| `.githooks/`, `tools/git/` | Git hooks: pre-commit clang-format check (`check-format.mjs`, `format.mjs`), commit-msg Conventional Commits check (`check-commit-msg.mjs`, `commit-message.mjs`), pre-push (`pre-push.mjs`, decision in `push-plan.mjs`, linear-history step `check-linear.mjs`/`linear.mjs`); `work-folders.mjs` (`guard-master`, `create <n>`); tests in `*.test.mjs` (helpers `test-repos.mjs`) |
+| `.githooks/`, `tools/git/` | Git hooks: pre-commit clang-format check (`check-format.mjs`, `format.mjs`), commit-msg Conventional Commits check (`check-commit-msg.mjs`, `commit-message.mjs`), private-data guard and identity check in all three (`check-private.mjs`, `private-patterns.mjs`, `identity.mjs`), pre-push (`pre-push.mjs`, decision in `push-plan.mjs`, linear-history step `check-linear.mjs`/`linear.mjs`); `work-folders.mjs` (`guard-master`, `create <n>`); tests in `*.test.mjs` (helpers `test-repos.mjs`) |
 | `tools/icon/make_icon.py` | Regenerates all icons from SVG (needs rsvg-convert, icotool) |
 | `cmake/Checkout.cmake` | At configure time: refuses the master checkout, sets `core.hooksPath` to `.githooks` (keeps a different value, warns) |
 | `cmake/GenerateVersion.cmake` | `version.h` from `version.txt` + git state (release vs. `+g<hash>[.dirty]`) |

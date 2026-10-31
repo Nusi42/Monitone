@@ -8,13 +8,19 @@
 //       and turn its hooks on (core.hooksPath .githooks)
 //   node tools/git/work-folders.mjs create <n>
 //       clone the master into <parent of this folder>/Monitone.win<n> on a
-//       new branch WIN<n> from main, with the master's commit identity and
-//       the hooks turned on
+//       new branch WIN<n> from main, with the master's commit identity
+//       (user.name, user.email, monitone.identity), its private patterns file
+//       (monitone.privatePatterns) and the hooks turned on
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { IDENTITY_KEY } from "./identity.mjs";
+import { PATTERNS_KEY } from "./private-patterns.mjs";
 import { ROLE_KEY, isLocalUrl, isMaster, localConfig, localPath } from "./push-plan.mjs";
+
+/** The settings a work folder copies from the master's local git config. */
+export const COPIED_KEYS = ["user.name", "user.email", IDENTITY_KEY, PATTERNS_KEY];
 
 /** Prefixes of the work folders and their branches. */
 export const FOLDER_PREFIX = "Monitone.win";
@@ -70,7 +76,7 @@ function create(root, n) {
   if (fs.existsSync(target)) throw new Error(`${target} exists already`);
   const branch = `${BRANCH_PREFIX}${String(n)}`;
   execFileSync("git", ["clone", "--quiet", master, target], { stdio: "inherit" });
-  for (const key of ["user.name", "user.email"]) {
+  for (const key of COPIED_KEYS) {
     const value = localConfig(master, key);
     if (value !== undefined) git(target, ["config", "--local", key, value]);
   }

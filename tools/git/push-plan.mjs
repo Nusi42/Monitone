@@ -2,14 +2,17 @@
 // pushPlan(), from the pushing checkout's role and the remote's URL
 // (tools/git/pre-push.mjs runs it; docs/BUILDING.md "Master and work folders").
 //
+// Every allowed push runs the private-data guard and the identity check on
+// the pushed commits (tools/git/check-private.mjs --push) and refuses merge
+// commits.
 // - The master (local git config `monitone.role=master`) is the only checkout
 //   that publishes: it pushes `main` and release tags `v<X.Y.Z>` to a network
-//   remote and runs only checks that build nothing (no merge commits). `main`
-//   only moves to commits that passed the full check in a work folder.
-// - A work folder (its `origin` is the master) pushes only to a local path: no
-//   merge commits, then the full check (tools/check.mjs).
-// - A plain clone (no master, e.g. a contributor's fork) pushes anywhere: no
-//   merge commits.
+//   remote and runs only checks that build nothing (also the guard on every
+//   tracked file). `main` only moves to commits that passed the full check in
+//   a work folder.
+// - A work folder (its `origin` is the master) pushes only to a local path,
+//   then runs the full check (tools/check.mjs).
+// - A plain clone (no master, e.g. a contributor's fork) pushes anywhere.
 // - Every other combination is refused.
 import { execFileSync } from "node:child_process";
 import path from "node:path";
@@ -137,14 +140,34 @@ function publishable(/** @type {PushRef} */ ref) {
  * @property {string} id
  * @property {string} title
  * @property {string} script a script of the hook's own checkout, relative to its root
+ * @property {string[]} args
  * @property {boolean} stdin gets git's ref lines on stdin
  */
+
+/** @type {PushStep} */
+export const PRIVATE_PUSHED = {
+  id: "private-push",
+  title: "no private data and only the allowed identity in the pushed commits",
+  script: "tools/git/check-private.mjs",
+  args: ["--push"],
+  stdin: true,
+};
+
+/** @type {PushStep} */
+export const PRIVATE_TREE = {
+  id: "private",
+  title: "no private data in the tracked files",
+  script: "tools/git/check-private.mjs",
+  args: [],
+  stdin: false,
+};
 
 /** @type {PushStep} */
 export const LINEAR = {
   id: "linear",
   title: "no merge commits in the pushed history",
   script: "tools/git/check-linear.mjs",
+  args: [],
   stdin: true,
 };
 
@@ -153,6 +176,7 @@ export const FULL_CHECK = {
   id: "check",
   title: "full check (tools/check.mjs)",
   script: "tools/check.mjs",
+  args: [],
   stdin: false,
 };
 
@@ -165,9 +189,9 @@ export const FULL_CHECK = {
  */
 export function pushPlan({ role, url, refs, master = "<master>" }) {
   const local = isLocalUrl(url);
-  if (role === "plain") return { steps: [LINEAR] };
+  if (role === "plain") return { steps: [PRIVATE_PUSHED, LINEAR] };
   if (role === "work") {
-    if (local) return { steps: [LINEAR, FULL_CHECK] };
+    if (local) return { steps: [PRIVATE_PUSHED, LINEAR, FULL_CHECK] };
     return {
       refusal:
         `a work folder pushes only to the master, not to ${url}.\n` +
@@ -188,5 +212,5 @@ export function pushPlan({ role, url, refs, master = "<master>" }) {
         `${other.map((ref) => `${ref.localRef} -> ${ref.remoteRef}`).join(", ")}.`,
     };
   }
-  return { steps: [LINEAR] };
+  return { steps: [PRIVATE_PUSHED, LINEAR, PRIVATE_TREE] };
 }

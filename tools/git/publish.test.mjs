@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { test } from "node:test";
 
-import { FULL_CHECK, LINEAR, checkoutRole, isLocalUrl, pushPlan } from "./push-plan.mjs";
+import { FULL_CHECK, LINEAR, PRIVATE_PUSHED, PRIVATE_TREE, checkoutRole, isLocalUrl, pushPlan } from "./push-plan.mjs";
 import { CHECK_STUB_OUTPUT, commit, git, gitTry, initRepo, mergeSide, repoRoot, runPrePush, tempDir } from "./test-repos.mjs";
 
 const ZERO = "0".repeat(40);
@@ -27,14 +27,15 @@ test("isLocalUrl tells paths from network remotes", () => {
   }
 });
 
-test("pushPlan: plain clone checks linear history for every remote", () => {
-  assert.deepEqual(pushPlan({ role: "plain", url: NETWORK, refs: [ref("refs/heads/x")] }), { steps: [LINEAR] });
-  assert.deepEqual(pushPlan({ role: "plain", url: LOCAL, refs: [MAIN] }), { steps: [LINEAR] });
+test("pushPlan: plain clone checks the pushed commits for every remote", () => {
+  const steps = [PRIVATE_PUSHED, LINEAR];
+  assert.deepEqual(pushPlan({ role: "plain", url: NETWORK, refs: [ref("refs/heads/x")] }), { steps });
+  assert.deepEqual(pushPlan({ role: "plain", url: LOCAL, refs: [MAIN] }), { steps });
 });
 
 test("pushPlan: a work folder pushes only to a local path, with the full check", () => {
   assert.deepEqual(pushPlan({ role: "work", url: LOCAL, refs: [ref("refs/heads/WIN1")] }), {
-    steps: [LINEAR, FULL_CHECK],
+    steps: [PRIVATE_PUSHED, LINEAR, FULL_CHECK],
   });
   const refused = pushPlan({ role: "work", url: NETWORK, refs: [MAIN], master: "M:/master" });
   assert.ok("refusal" in refused);
@@ -44,7 +45,7 @@ test("pushPlan: a work folder pushes only to a local path, with the full check",
 
 test("pushPlan: the master publishes only main and release tags to a network remote", () => {
   assert.deepEqual(pushPlan({ role: "master", url: NETWORK, refs: [MAIN, ref("refs/tags/v1.2.3")] }), {
-    steps: [LINEAR],
+    steps: [PRIVATE_PUSHED, LINEAR, PRIVATE_TREE],
   });
   for (const refs of [
     [ref("refs/heads/WIN1")],
@@ -144,12 +145,16 @@ test("the master publishes main to a network remote and nothing else", (t) => {
 
 test("create clones the master into a new work folder on WIN<n>", (t) => {
   const { dir, master, work } = makeSetup(t);
+  git(master, "config", "monitone.identity", "Owner <owner@example.com>");
+  git(master, "config", "monitone.privatePatterns", "C:/elsewhere/patterns.txt");
   const result = workFolders(work, "create", "2");
   assert.equal(result.status, 0, result.stderr);
   const second = path.join(dir, "Monitone.win2");
   assert.equal(git(second, "branch", "--show-current"), "WIN2");
   assert.equal(git(second, "config", "--local", "core.hooksPath"), ".githooks");
   assert.equal(git(second, "config", "--local", "user.email"), "owner@example.com");
+  assert.equal(git(second, "config", "--local", "monitone.identity"), "Owner <owner@example.com>");
+  assert.equal(git(second, "config", "--local", "monitone.privatePatterns"), "C:/elsewhere/patterns.txt");
   assert.equal(git(second, "rev-parse", "HEAD"), git(master, "rev-parse", "main"));
   assert.equal(checkoutRole(second), "work");
   const again = workFolders(work, "create", "2");

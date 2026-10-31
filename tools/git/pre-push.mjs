@@ -32,7 +32,8 @@ function main(argv) {
   }
   for (const step of plan.steps) {
     console.log(`pre-push: ${step.title}`);
-    const result = spawnSync(process.execPath, [path.join(scriptsRoot, ...step.script.split("/"))], {
+    const script = path.join(scriptsRoot, ...step.script.split("/"));
+    const result = spawnSync(process.execPath, [script, ...step.args], {
       cwd: root,
       input: step.stdin ? input : "",
       stdio: ["pipe", "inherit", "inherit"],

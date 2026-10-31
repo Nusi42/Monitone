@@ -2,9 +2,10 @@
 // The full check, run by the pre-push hook before a work folder pushes to the
 // master (tools/git/push-plan.mjs), and by hand:
 //   node tools/check.mjs
-// 1. CMake build with MSVC, Release, warnings as errors (build/);
-// 2. the git tooling tests (tools/git/*.test.mjs);
-// 3. the UI preview check (tools/ui-preview/preview.mjs, needs Playwright).
+// 1. no private data in the tracked files (tools/git/check-private.mjs);
+// 2. CMake build with MSVC, Release, warnings as errors (build/);
+// 3. the git tooling tests (tools/git/*.test.mjs);
+// 4. the UI preview check (tools/ui-preview/preview.mjs, needs Playwright).
 // cmake comes from PATH, else from the latest Visual Studio.
 import { execFileSync, spawnSync } from "node:child_process";
 import path from "node:path";
@@ -47,6 +48,7 @@ function main() {
       ? process.env
       : { ...process.env, [pathKey]: `${path.dirname(cmake)}${path.delimiter}${process.env[pathKey] ?? ""}` };
   if (
+    !step("private data", process.execPath, ["tools/git/check-private.mjs"]) ||
     !step("configure", cmake, ["-S", root, "-B", build, "-A", "x64", "-DMONITONE_WARNINGS_AS_ERRORS=ON"]) ||
     !step("build", cmake, ["--build", build, "--config", "Release", "--parallel"]) ||
     !step("git tooling tests", process.execPath, ["--test", "tools/git/*.test.mjs"], env)
