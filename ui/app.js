@@ -240,10 +240,17 @@
     const rows = report.entries.map((entry) => {
       const key = String(entry.pid);
       const row = existing.get(key) || createApplicationRow(entry);
+      existing.delete(key);
       updateApplicationRow(row, entry);
       return row;
     });
-    list.replaceChildren(...rows);
+
+    // Reconcile in place: detaching a row would close an open rule picker.
+    list.querySelectorAll(':scope > :not(.app-row)').forEach((node) => node.remove());
+    existing.forEach((row) => row.remove());
+    rows.forEach((row, index) => {
+      if (list.children[index] !== row) list.insertBefore(row, list.children[index] || null);
+    });
   }
 
   function createApplicationRow(entry) {
@@ -263,7 +270,24 @@
     row.querySelector('.description').textContent = entry.title || 'No window';
     row.querySelector('.description').title = entry.title || '';
 
+    // Rebuild the chips only when they change: a rebuild restarts the "Playing" animation.
     const meta = row.querySelector('.meta');
+    const signature = JSON.stringify([entry.playing, entry.display, entry.device, entry.note, Boolean(entry.balance)]);
+    if (meta.dataset.signature === signature) {
+      if (entry.balance) {
+        const [left, right] = meta.querySelectorAll('.meter b');
+        left.style.width = `${Math.round(entry.balance.left * 100)}%`;
+        right.style.width = `${Math.round(entry.balance.right * 100)}%`;
+      }
+    } else {
+      meta.dataset.signature = signature;
+      meta.replaceChildren(...applicationChips(entry));
+    }
+
+    updateRulePicker(row, entry);
+  }
+
+  function applicationChips(entry) {
     const status = entry.playing
       ? h('span', { class: 'chip playing' }, h('span', { class: 'bars' }, h('i'), h('i'), h('i')), 'Playing')
       : h('span', { class: 'chip' }, 'Idle');
@@ -276,9 +300,11 @@
         h('span', {}, h('b', { style: { width: `${Math.round(entry.balance.left * 100)}%` } })),
         h('span', {}, h('b', { style: { width: `${Math.round(entry.balance.right * 100)}%` } }))));
     }
-    meta.replaceChildren(...chips);
+    return chips;
+  }
 
-    // Keep the rule picker while the user works with it.
+  // Keep the rule picker while the user works with it.
+  function updateRulePicker(row, entry) {
     const value = ruleValue(ruleFor(entry.exe));
     const current = row.querySelector('select');
     if (current && (current === document.activeElement || current.value === value)) return;
