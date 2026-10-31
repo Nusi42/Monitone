@@ -145,6 +145,7 @@ void Config::Load() {
   const IniFile ini{path_};
   paused = ini.ReadUInt(kGeneral, L"Paused", 0) != 0;
   restoreOnExit = ini.ReadUInt(kGeneral, L"RestoreOnExit", 1) != 0;
+  welcomed = ini.ReadUInt(kGeneral, L"Welcomed", 0) != 0;
   pollMs = std::clamp(ini.ReadUInt(kGeneral, L"PollMs", kDefaultPollMs), kMinPollMs, kMaxPollMs);
   balance = ParseBalance(ini.Read(kGeneral, L"Balance", L"off"));
 
@@ -175,6 +176,7 @@ void Config::Save() {
 
   ini.Write(kGeneral, L"Paused", paused ? L"1" : L"0");
   ini.Write(kGeneral, L"RestoreOnExit", restoreOnExit ? L"1" : L"0");
+  ini.Write(kGeneral, L"Welcomed", welcomed ? L"1" : L"0");
   ini.Write(kGeneral, L"Balance", BalanceName(balance));
   ini.Write(kGeneral, L"PollMs", std::to_wstring(pollMs));
   ini.DeleteKey(kGeneral, L"Exclude");

@@ -111,6 +111,13 @@ int TrayApp::Run(HINSTANCE instance) {
   StartPollTimer();
   Tick();
 
+  // First start: show the settings so the user can choose speakers per display.
+  if (!config_.welcomed) {
+    config_.welcomed = true;
+    config_.Save();
+    OpenSettings(MONITONE_PAGE_DISPLAYS);
+  }
+
   MSG message{};
   while (::GetMessageW(&message, nullptr, 0, 0) > 0) {
     ::TranslateMessage(&message);

@@ -60,6 +60,7 @@ class Config {
 
   bool paused = false;
   bool restoreOnExit = true;
+  bool welcomed = false;  // settings were shown once after the first start
   BalanceMode balance = BalanceMode::Off;
   UINT pollMs = kDefaultPollMs;
   std::vector<MonitorRule> rules;
