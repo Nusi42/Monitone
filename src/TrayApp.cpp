@@ -249,6 +249,11 @@ LRESULT TrayApp::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
       if (wParam != FALSE) Shutdown();
       return 0;
 
+    // Sent by installers and uninstallers: exit like the Exit menu item.
+    case WM_CLOSE:
+      ::PostQuitMessage(0);
+      return 0;
+
     case kMsgSettingsCall:
       return settings_ ? settings_->OnCall(wParam, lParam) : 0;
 
