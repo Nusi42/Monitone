@@ -118,10 +118,10 @@ function Find-Tool([string]$Name, [string[]]$Candidates, [string]$Hint) {
 # --- Preconditions -------------------------------------------------------------
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'git is not installed.' }
+if ((Get-CheckoutRole) -eq 'work') { throw 'Releases are built in the master checkout, not in a work folder.' }
 $branch = (Invoke-Git rev-parse --abbrev-ref HEAD) | Select-Object -First 1
 if ($branch -ne 'main') { throw "Releases are made from main, not '$branch'." }
 if (Invoke-Git status --porcelain) { throw 'The working tree has uncommitted changes.' }
-if ((Get-CheckoutRole) -eq 'work') { throw 'Releases are built in the master checkout, not in a work folder.' }
 if ("$WorkDir\".StartsWith("$Root\", [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "-WorkDir must be outside the checkout ($Root)."
 }
@@ -152,7 +152,7 @@ if ($lastTag) {
             Hash     = $fields[0]
             Type     = $Matches.type
             Text     = $Matches.text
-            Breaking = [bool]$Matches.bang -or ($body -match 'BREAKING CHANGE')
+            Breaking = $Matches.ContainsKey('bang') -or ($body -match 'BREAKING CHANGE')
         }
     }
 }
