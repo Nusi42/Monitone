@@ -1,17 +1,14 @@
 // Tests for the commit-msg and pre-commit hooks: node --test "tools/git/*.test.mjs".
 // The hook tests commit in temporary repositories through the real hook files.
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { commitMessageProblems, messageText } from "./commit-message.mjs";
 import { findClangFormat } from "./format.mjs";
-
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+import { git, initRepo, tempDir } from "./test-repos.mjs";
 const clangFormat = findClangFormat();
 const skipFormat = clangFormat === undefined ? "clang-format not found" : false;
 
@@ -41,29 +38,10 @@ test("commitMessageProblems names what is wrong", () => {
   assert.match(commitMessageProblems("feat: x\n\nsee https://claude.ai/chat/1\n")[0] ?? "", /claude\.ai/);
 });
 
-/** Runs git in `cwd`; returns trimmed stdout, throws on failure. */
-function git(cwd, ...args) {
-  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-}
-
 /** A repository that uses this repository's real hooks, check files and .clang-format. */
 function makeRepo(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "monitone-commit-"));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  git(dir, "init", "--quiet", "--initial-branch=main");
-  const files = [".clang-format", ".githooks/commit-msg", ".githooks/pre-commit"];
-  for (const name of ["check-commit-msg", "commit-message", "check-format", "format"]) {
-    files.push(`tools/git/${name}.mjs`);
-  }
-  for (const rel of files) {
-    fs.mkdirSync(path.join(dir, path.dirname(rel)), { recursive: true });
-    fs.copyFileSync(path.join(repoRoot, rel), path.join(dir, rel));
-  }
-  git(dir, "config", "user.name", "Test");
-  git(dir, "config", "user.email", "test@example.com");
-  git(dir, "config", "core.hooksPath", ".githooks");
-  git(dir, "add", "-A");
-  git(dir, "commit", "--quiet", "-m", "chore: base");
+  const dir = path.join(tempDir(t), "repo");
+  initRepo(dir);
   return dir;
 }
 

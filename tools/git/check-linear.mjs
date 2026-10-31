@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Pre-push check: no merge commits in what a push adds (see tools/git/linear.mjs).
-// Reads git's ref lines on stdin. Runs unconditionally on load, so the hook
-// can never pass silently.
+// Pre-push step: no merge commits in what a push adds (see tools/git/linear.mjs).
+// Run by tools/git/pre-push.mjs for every push it allows; reads git's ref lines
+// on stdin and checks the pushing checkout.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 

@@ -1,6 +1,7 @@
-// Tests for cmake/GitHooks.cmake, which CMake runs at configure time to set
-// core.hooksPath: node --test "tools/git/*.test.mjs". Skipped without cmake on
-// PATH (Developer PowerShell for VS 2022 has it).
+// Tests for cmake/Checkout.cmake, which CMake runs at configure time: it
+// refuses the master checkout and sets core.hooksPath. node --test
+// "tools/git/*.test.mjs"; skipped without cmake on PATH (Developer PowerShell
+// for VS 2022 has it, tools/check.mjs adds it).
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -10,11 +11,11 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const script = path.join(repoRoot, "cmake", "GitHooks.cmake");
+const script = path.join(repoRoot, "cmake", "Checkout.cmake");
 const hasCmake = spawnSync("cmake", ["--version"], { stdio: "ignore" }).status === 0;
 const skip = hasCmake ? false : "cmake is not on PATH";
 
-/** Runs cmake/GitHooks.cmake for `dir`. */
+/** Runs cmake/Checkout.cmake for `dir`. */
 function runScript(dir) {
   return spawnSync("cmake", [`-DSOURCE_DIR=${dir}`, "-P", script], { encoding: "utf8" });
 }
@@ -62,4 +63,14 @@ test("outside a git checkout nothing happens", { skip }, (t) => {
   const result = runScript(dir);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout + result.stderr, "");
+});
+
+test("the master checkout is refused", { skip }, (t) => {
+  const dir = tempDir(t);
+  execFileSync("git", ["init", "--quiet", dir]);
+  execFileSync("git", ["config", "monitone.role", "master"], { cwd: dir });
+  const result = runScript(dir);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /is the master\s+checkout: it builds only releases/);
+  assert.equal(hooksPath(dir), "");
 });

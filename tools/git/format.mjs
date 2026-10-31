@@ -3,14 +3,16 @@
 // C++ file must match .clang-format. It only checks, never rewrites. clang-format
 // comes from PATH, else from the latest Visual Studio (VC\Tools\Llvm).
 import { execFileSync, spawnSync } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
+
+import { findTool } from "./find-tool.mjs";
 
 /** The files the check covers. */
 export const CPP_FILE = /\.(?:cpp|cc|cxx|h|hpp|hh|inl)$/i;
 
 /**
  * The clang-format executable, or `undefined` when there is none.
+ * `MONITONE_CLANG_FORMAT` overrides the search (empty: none).
  *
  * @param {NodeJS.ProcessEnv} env
  * @returns {string | undefined}
@@ -19,19 +21,7 @@ export function findClangFormat(env = process.env) {
   if (env.MONITONE_CLANG_FORMAT !== undefined) {
     return env.MONITONE_CLANG_FORMAT === "" ? undefined : env.MONITONE_CLANG_FORMAT;
   }
-  if (spawnSync("clang-format", ["--version"], { stdio: "ignore" }).status === 0) return "clang-format";
-  const programFiles = env["ProgramFiles(x86)"];
-  if (programFiles === undefined) return undefined;
-  const vswhere = path.join(programFiles, "Microsoft Visual Studio", "Installer", "vswhere.exe");
-  const found = spawnSync(vswhere, ["-latest", "-products", "*", "-property", "installationPath"], {
-    encoding: "utf8",
-  });
-  if (found.status !== 0) return undefined;
-  for (const vs of found.stdout.split(/\r?\n/).filter(Boolean)) {
-    const exe = path.join(vs, "VC", "Tools", "Llvm", "x64", "bin", "clang-format.exe");
-    if (fs.existsSync(exe)) return exe;
-  }
-  return undefined;
+  return findTool("clang-format", path.join("VC", "Tools", "Llvm", "x64", "bin", "clang-format.exe"), env);
 }
 
 /**

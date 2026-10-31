@@ -1,6 +1,5 @@
 #!/bin/sh
 # Commit-msg hook (core.hooksPath .githooks, set by the first CMake configure).
 # Conventional Commits subject, no session links; git passes the message file.
-root=$(git rev-parse --show-toplevel) || exit 1
 command -v node >/dev/null 2>&1 || { echo "commit-msg: Node.js is required for tools/git/check-commit-msg.mjs" >&2; exit 1; }
-exec node "$root/tools/git/check-commit-msg.mjs" "$1"
+exec node "$(dirname "$0")/../tools/git/check-commit-msg.mjs" "$1"

@@ -47,12 +47,14 @@ The commit-msg hook checks the subject (see [docs/BUILDING.md](docs/BUILDING.md#
 ## Versions and releases
 
 Releases are built, tested and published from a Windows PC in two steps;
-there is no CI.
+there is no CI. With a master checkout (see
+[docs/BUILDING.md](docs/BUILDING.md#master-and-work-folders)) both scripts run
+in the master and refuse to run in a work folder.
 
 ```
 tools\build-release.ps1 -DryRun   # shows the next version and its release notes
 tools\build-release.ps1           # builds the release candidate; changes nothing in git
-# ... test the packages in build\release-candidate\dist ...
+# ... test the packages in %LOCALAPPDATA%\Monitone-release\dist ...
 tools\publish-release.ps1         # commits, tags, pushes, creates the GitHub release
 ```
 
@@ -61,8 +63,11 @@ tools\publish-release.ps1         # commits, tags, pushes, creates the GitHub re
   enters the Visual Studio developer environment itself): the next version
   follows from the commits since the last tag; `-Bump major|minor|patch` or
   `-Version X.Y.Z` override it. The first release uses `version.txt` as it is.
-  It builds with MSVC as exactly that version (`-DMONITONE_RELEASE_VERSION`),
-  checks the binaries and writes to `build\release-candidate\dist`: the portable zip,
+  It starts clean: it deletes and recreates `-WorkDir` (default
+  `%LOCALAPPDATA%\Monitone-release`, never inside the checkout), exports `HEAD`
+  into it with `git archive` (no untracked or ignored files), builds that with
+  MSVC as exactly that version (`-DMONITONE_RELEASE_VERSION`), checks the
+  binaries and writes to `<WorkDir>\dist`: the portable zip,
   the NSIS setup, the MSI package, `SHA256SUMS.txt`, `release-notes.md` and
   `release.json`.
 - **Release notes** are generated from the commits. If
@@ -74,7 +79,8 @@ tools\publish-release.ps1         # commits, tags, pushes, creates the GitHub re
 - **Publish** (`publish-release.ps1`) checks that `main` is still at the built
   commit and the packages are unchanged, asks for confirmation, updates
   `version.txt` and `CHANGELOG.md`, commits `chore(release): X.Y.Z`, tags
-  `vX.Y.Z`, pushes both and creates the GitHub release with the packages. It
+  `vX.Y.Z`, pushes both (the master to `github`, a plain clone to `origin`)
+  and creates the GitHub release with the packages. It
   needs the GitHub CLI, signed in (`gh auth login`).
 - Tools: Visual Studio 2022 with C++ and CMake tools, NSIS 3
   (`winget install NSIS.NSIS`), WiX Toolset 5 with the Util extension

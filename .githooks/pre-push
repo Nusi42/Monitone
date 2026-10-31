@@ -1,6 +1,8 @@
 #!/bin/sh
-# Pre-push hook (core.hooksPath .githooks, set by the first CMake configure).
-# Refuses merge commits in what a push adds; git passes the ref lines on stdin.
-root=$(git rev-parse --show-toplevel) || exit 1
-command -v node >/dev/null 2>&1 || { echo "pre-push: Node.js is required for tools/git/check-linear.mjs" >&2; exit 1; }
-exec node "$root/tools/git/check-linear.mjs"
+# Pre-push hook (core.hooksPath .githooks, set by the first CMake configure or
+# by tools/git/work-folders.mjs guard-master). Decides from this checkout's
+# role and the remote's URL what the push runs, or refuses it
+# (tools/git/pre-push.mjs). The scripts are found next to this hook; git passes
+# the remote's name and URL as arguments and the ref lines on stdin.
+command -v node >/dev/null 2>&1 || { echo "pre-push: Node.js is required for tools/git/pre-push.mjs" >&2; exit 1; }
+exec node "$(dirname "$0")/../tools/git/pre-push.mjs" "$@"

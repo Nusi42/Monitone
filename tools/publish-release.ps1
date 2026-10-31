@@ -3,12 +3,15 @@
     Publishes the release candidate built by tools\build-release.ps1 on GitHub.
 
 .DESCRIPTION
-    1. Checks that main is clean and still at the commit the candidate was
-       built from, and that the packages are unchanged (SHA256SUMS.txt).
+    1. Checks that this is the master checkout or a plain clone (not a work
+       folder), that main is clean and still at the commit the candidate was
+       built from, and that the packages in <WorkDir>\dist are unchanged
+       (SHA256SUMS.txt).
     2. Asks for confirmation.
     3. Updates version.txt and CHANGELOG.md (from release-notes.md), commits
        "chore(release): X.Y.Z" and creates the tag vX.Y.Z.
-    4. Pushes main and the tag.
+    4. Pushes main and the tag: from the master to its remote "github", from
+       a plain clone to "origin". The pre-push hook checks the push.
     5. Creates the GitHub release with release-notes.md and uploads the zip,
        the setup, the MSI and SHA256SUMS.txt.
 
@@ -19,7 +22,8 @@
 #>
 [CmdletBinding()]
 param(
-    [switch]$Yes
+    [switch]$Yes,
+    [string]$WorkDir = (Join-Path $env:LOCALAPPDATA 'Monitone-release')
 )
 
 Set-StrictMode -Version Latest
@@ -27,7 +31,7 @@ $ErrorActionPreference = 'Stop'
 
 $Repository = 'https://github.com/Nusi42/Monitone'
 $Root = Split-Path -Parent $PSScriptRoot
-$Dist = Join-Path $Root 'build\release-candidate\dist'
+$Dist = Join-Path $WorkDir 'dist'
 $Utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
 function Invoke-Git {
@@ -45,7 +49,25 @@ function Write-Utf8([string]$Path, [string]$Text) {
     [System.IO.File]::WriteAllText($Path, $Text, $Utf8NoBom)
 }
 
+# The checkout's role (docs/BUILDING.md "Master and work folders"): 'master'
+# (local git config monitone.role=master), 'work' (its origin is the master)
+# or 'plain'. The same logic is in tools\build-release.ps1.
+function Get-CheckoutRole {
+    if ((& git -C $Root config --local --get monitone.role) -eq 'master') { return 'master' }
+    $origin = & git -C $Root config --local --get remote.origin.url
+    if ($origin -and $origin -match '^([A-Za-z]:[\\/]|\\\\|/|\.\.?([\\/]|$)|file://)') {
+        $dir = if ($origin -match '^file://') { ([uri]$origin).LocalPath }
+               else { [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($Root, $origin)) }
+        if ((& git -C $dir config --local --get monitone.role) -eq 'master') { return 'work' }
+    }
+    return 'plain'
+}
+
 # --- Preconditions -------------------------------------------------------------
+
+$role = Get-CheckoutRole
+if ($role -eq 'work') { throw 'Releases are published from the master checkout, not from a work folder.' }
+$remote = if ($role -eq 'master') { 'github' } else { 'origin' }
 
 $manifestPath = Join-Path $Dist 'release.json'
 if (-not (Test-Path $manifestPath)) { throw 'No release candidate. Run tools\build-release.ps1 first.' }
@@ -112,11 +134,11 @@ Invoke-Git tag -a $tag -m "Monitone $Version" | Out-Null
 # --- Publish -------------------------------------------------------------------------
 
 try {
-    Invoke-Git push origin main $tag | Out-Null
+    Invoke-Git push $remote main $tag | Out-Null
 }
 catch {
     Write-Host "Push failed. The release commit and tag $tag exist only locally; fix the problem and run:" -ForegroundColor Red
-    Write-Host "  git push origin main $tag"
+    Write-Host "  git push $remote main $tag"
     Write-Host "  gh release create $tag --repo $Repository --title `"Monitone $Version`" --notes-file `"$notesFile`" <assets in $Dist>"
     throw
 }

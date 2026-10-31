@@ -1,6 +1,6 @@
 // Linear history: branches are combined by rebasing onto the target and
 // fast-forwarding, never with a merge commit. The pre-push hook
-// (.githooks/pre-push -> tools/git/check-linear.mjs) refuses merge commits in
+// (.githooks/pre-push -> tools/git/pre-push.mjs -> check-linear.mjs) refuses merge commits in
 // what a push adds. Merge commits already on the remote stay as they are.
 import { execFileSync } from "node:child_process";
 

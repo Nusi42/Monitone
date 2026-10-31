@@ -14,8 +14,20 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
   `tools\publish-release.ps1`. Do not add workflows.
 - **The repository is public.** `main` is protected by the ruleset "Protect
   main" (pull requests, squash merge only, no force push or deletion); the
-  owner can bypass it, which `tools\publish-release.ps1` relies on. Ask the
-  owner whether to push directly or open a PR. GitHub Actions is disabled.
+  owner can bypass it, which `tools\publish-release.ps1` relies on. GitHub
+  Actions is disabled.
+- **Master and work folders** (the owner's setup, `docs/BUILDING.md` "Master
+  and work folders"; the actual paths are in the untracked `CLAUDE.local.md`).
+  The master checkout (local git config `monitone.role=master`) is the only one
+  that pushes to GitHub (its remote `github`), and only `main` and release tags
+  `v<X.Y.Z>`. It builds nothing except releases (`tools\build-release.ps1`
+  exports `HEAD` into a fresh folder outside the checkout); CMake refuses a
+  development build there. Work happens in work folders (`origin` = the
+  master, branch `WIN<n>`): push the branch to the master (the pre-push hook
+  runs the full check `tools/check.mjs`), fast-forward the master's `main`
+  (`git -C <master> merge --ff-only WIN<n>`), then publish from the master
+  (`git -C <master> push github main`). A work folder's push to a network
+  remote is refused. Ask the owner before publishing.
 - **Linear history: rebase, never merge.** Combine branches by rebasing onto
   the target and fast-forwarding (`git rebase main`, then
   `git switch main && git merge --ff-only <branch>`), never with a merge
@@ -23,9 +35,11 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
   a push adds (old merge commits on the remote stay).
 - **Git hooks** in `.githooks`: pre-commit (staged C++ matches
   `.clang-format`), commit-msg (Conventional Commits subject, no session
-  links), pre-push (linear history). The first CMake configure of a clone sets
-  `core.hooksPath` to `.githooks` (`cmake/GitHooks.cmake`); without a build,
-  `git config core.hooksPath .githooks`. Never use `--no-verify`.
+  links), pre-push (`tools/git/push-plan.mjs` decides from the checkout's role
+  and the remote: linear history everywhere, the full check from a work
+  folder, refusals). The first CMake configure of a clone sets
+  `core.hooksPath` to `.githooks` (`cmake/Checkout.cmake`); the master gets it
+  from `node tools/git/work-folders.mjs guard-master`. Never use `--no-verify`.
 - **Never commit personal data:** no real names, e-mail addresses (use the
   GitHub noreply address), locations, local user paths or session links.
 - **Commit messages follow Conventional Commits** (`feat:`, `fix:`, `perf:`,
@@ -62,14 +76,15 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
 | `src/IdentifyOverlay.*`, `src/TestTone.*` | Display number overlay, WASAPI test tone (used by the DLL) |
 | `ui/` | Settings UI: `index.html`, `app.css`, `app.js` (embedded into the DLL as RCDATA) |
 | `res/` | Icons (`.ico`, SVG sources), `.rc` files, manifest, `.def` for DLL exports |
-| `tools/build-release.ps1` | Release candidate: next version, notes, MSVC build, zip + NSIS setup + MSI in `build\release-candidate\dist`; no git changes |
-| `tools/publish-release.ps1` | Publishes the tested candidate: version.txt, CHANGELOG, commit, tag, push, GitHub release via `gh` |
+| `tools/build-release.ps1` | Release candidate (master or plain clone): next version, notes, clean MSVC build of an export of `HEAD`, zip + NSIS setup + MSI in `%LOCALAPPDATA%\Monitone-release\dist`; no git changes |
+| `tools/publish-release.ps1` | Publishes the tested candidate: version.txt, CHANGELOG, commit, tag, push (master: `github`), GitHub release via `gh` |
+| `tools/check.mjs` | Full check: MSVC build with warnings as errors, git tooling tests, UI preview; run by the pre-push hook from a work folder |
 | `installer/` | `Monitone.nsi` (NSIS 3), `Monitone.wxs` (WiX 5 + Util ext); both per-user, no admin |
 | `docs/release-notes/` | Optional `X.Y.Z.md` intro for a release's notes (required for the first release) |
 | `tools/ui-preview/` | Renders the UI in Chromium with `mock-bridge.js`; also makes README screenshots |
-| `.githooks/`, `tools/git/` | Git hooks: pre-commit clang-format check (`check-format.mjs`, `format.mjs`), commit-msg Conventional Commits check (`check-commit-msg.mjs`, `commit-message.mjs`), pre-push linear-history check (`check-linear.mjs`, `linear.mjs`); tests in `*.test.mjs` |
+| `.githooks/`, `tools/git/` | Git hooks: pre-commit clang-format check (`check-format.mjs`, `format.mjs`), commit-msg Conventional Commits check (`check-commit-msg.mjs`, `commit-message.mjs`), pre-push (`pre-push.mjs`, decision in `push-plan.mjs`, linear-history step `check-linear.mjs`/`linear.mjs`); `work-folders.mjs` (`guard-master`, `create <n>`); tests in `*.test.mjs` (helpers `test-repos.mjs`) |
 | `tools/icon/make_icon.py` | Regenerates all icons from SVG (needs rsvg-convert, icotool) |
-| `cmake/GitHooks.cmake` | Sets `core.hooksPath` to `.githooks` at configure time (keeps a different value, warns) |
+| `cmake/Checkout.cmake` | At configure time: refuses the master checkout, sets `core.hooksPath` to `.githooks` (keeps a different value, warns) |
 | `cmake/GenerateVersion.cmake` | `version.h` from `version.txt` + git state (release vs. `+g<hash>[.dirty]`) |
 
 ## Technical facts and pitfalls
@@ -117,7 +132,7 @@ WebView2. Owner: Nusi42 (experienced C++/Win32 developer).
 
 ## Build and check
 
-Windows, Developer PowerShell for VS 2022:
+Windows, Developer PowerShell for VS 2022, in a work folder or plain clone:
 
 ```
 cmake -S . -B build -A x64 -DMONITONE_WARNINGS_AS_ERRORS=ON
@@ -127,14 +142,16 @@ cmake --build build --config Release
 Output: `build\bin\Release\Monitone.exe` and `MonitoneSettings.dll`.
 UI check without Windows: `node tools/ui-preview/preview.mjs build/ui-preview`
 (fails on script errors and CSP violations). Git tooling tests:
-`node --test "tools/git/*.test.mjs"`. Details: `docs/BUILDING.md`.
+`node --test "tools/git/*.test.mjs"`. All of it at once: `node tools/check.mjs`.
+Details: `docs/BUILDING.md`.
 
 ## Release
 
-`tools\build-release.ps1 -DryRun`, then `tools\build-release.ps1` (builds
-the candidate into `build\release-candidate\dist`, no git changes), the owner tests,
-then `tools\publish-release.ps1`. The first release is 1.0.0. Details:
-`CONTRIBUTING.md`.
+In the master: `tools\build-release.ps1 -DryRun`, then
+`tools\build-release.ps1` (clean build of an export of `HEAD` into
+`%LOCALAPPDATA%\Monitone-release`, no git changes), the owner tests, then
+`tools\publish-release.ps1` (pushes to `github`). Work folders fetch the
+release commit from the master afterwards. Details: `CONTRIBUTING.md`.
 
 ## Status at handover
 

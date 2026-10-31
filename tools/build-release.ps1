@@ -3,7 +3,8 @@
     Builds a Monitone release candidate for testing. Changes nothing in git.
 
 .DESCRIPTION
-    1. Checks that the working tree is clean and on branch main.
+    1. Checks that the working tree is clean and on branch main, and that this
+       is the master checkout or a plain clone, not a work folder.
     2. Works out the next version from the Conventional Commits since the last
        release tag (feat = minor, fix/perf/refactor = patch, breaking = major,
        or minor before 1.0), unless -Version or -Bump says otherwise. The first
@@ -11,9 +12,13 @@
     3. Writes the release notes. docs\release-notes\X.Y.Z.md, if present, is
        put in front of the list of changes; the first release uses only that
        file.
-    4. Builds with CMake and MSVC (Release, warnings as errors) as exactly
-       version X.Y.Z and checks the version of the binaries.
-    5. Packages into build\release-candidate\dist:
+    4. Starts clean: deletes and recreates -WorkDir (default
+       %LOCALAPPDATA%\Monitone-release, outside the checkout), exports HEAD
+       into it (git archive: no untracked or ignored files) and builds that
+       with CMake and MSVC (Release, warnings as errors) as exactly version
+       X.Y.Z, then checks the version of the binaries. Nothing is built
+       inside the checkout.
+    5. Packages into <WorkDir>\dist:
          Monitone-X.Y.Z-x64.zip          portable
          Monitone-X.Y.Z-x64-setup.exe    NSIS setup
          Monitone-X.Y.Z-x64.msi          MSI package
@@ -43,7 +48,8 @@ param(
     [string]$Version,
     [ValidateSet('auto', 'major', 'minor', 'patch')]
     [string]$Bump = 'auto',
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$WorkDir = (Join-Path $env:LOCALAPPDATA 'Monitone-release')
 )
 
 Set-StrictMode -Version Latest
@@ -51,8 +57,10 @@ $ErrorActionPreference = 'Stop'
 
 $Repository = 'https://github.com/Nusi42/Monitone'
 $Root = Split-Path -Parent $PSScriptRoot
-$BuildDir = Join-Path $Root 'build\release-candidate'
-$Dist = Join-Path $BuildDir 'dist'
+$WorkDir = [System.IO.Path]::GetFullPath($WorkDir)
+$Source = Join-Path $WorkDir 'source'
+$BuildDir = Join-Path $WorkDir 'build'
+$Dist = Join-Path $WorkDir 'dist'
 $Utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
 function Invoke-Git {
@@ -68,6 +76,20 @@ function Invoke-Checked([string]$Command, [string[]]$Arguments) {
 
 function Write-Utf8([string]$Path, [string]$Text) {
     [System.IO.File]::WriteAllText($Path, $Text, $Utf8NoBom)
+}
+
+# The checkout's role (docs/BUILDING.md "Master and work folders"): 'master'
+# (local git config monitone.role=master), 'work' (its origin is the master)
+# or 'plain'. The same logic is in tools\publish-release.ps1.
+function Get-CheckoutRole {
+    if ((& git -C $Root config --local --get monitone.role) -eq 'master') { return 'master' }
+    $origin = & git -C $Root config --local --get remote.origin.url
+    if ($origin -and $origin -match '^([A-Za-z]:[\\/]|\\\\|/|\.\.?([\\/]|$)|file://)') {
+        $dir = if ($origin -match '^file://') { ([uri]$origin).LocalPath }
+               else { [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($Root, $origin)) }
+        if ((& git -C $dir config --local --get monitone.role) -eq 'master') { return 'work' }
+    }
+    return 'plain'
 }
 
 # Enters the Visual Studio developer environment unless cmake is already on PATH.
@@ -99,6 +121,10 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'git is not in
 $branch = (Invoke-Git rev-parse --abbrev-ref HEAD) | Select-Object -First 1
 if ($branch -ne 'main') { throw "Releases are made from main, not '$branch'." }
 if (Invoke-Git status --porcelain) { throw 'The working tree has uncommitted changes.' }
+if ((Get-CheckoutRole) -eq 'work') { throw 'Releases are built in the master checkout, not in a work folder.' }
+if ("$WorkDir\".StartsWith("$Root\", [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "-WorkDir must be outside the checkout ($Root)."
+}
 
 # --- Next version ----------------------------------------------------------------
 
@@ -195,7 +221,20 @@ $makensis = Find-Tool 'makensis' @("${env:ProgramFiles(x86)}\NSIS\makensis.exe",
 $wix = Find-Tool 'wix' @("$env:USERPROFILE\.dotnet\tools\wix.exe") `
     'Install the WiX Toolset: dotnet tool install --global wix --version 5.0.2'
 
-Invoke-Checked cmake @('-S', $Root, '-B', $BuildDir, '-A', 'x64', '-DMONITONE_WARNINGS_AS_ERRORS=ON',
+# A clean start: the work folder is made anew, the sources are an export of HEAD.
+$marker = Join-Path $WorkDir '.monitone-release'
+if (Test-Path $WorkDir) {
+    if (-not (Test-Path $marker)) { throw "$WorkDir exists but was not made by this script. Remove it or pass -WorkDir." }
+    Remove-Item $WorkDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $WorkDir | Out-Null
+Write-Utf8 $marker "Made by tools\build-release.ps1; its next run deletes this folder.`n"
+$archive = Join-Path $WorkDir 'source.zip'
+Invoke-Git archive --format=zip -o $archive HEAD | Out-Null
+Expand-Archive -Path $archive -DestinationPath $Source
+Remove-Item $archive
+
+Invoke-Checked cmake @('-S', $Source, '-B', $BuildDir, '-A', 'x64', '-DMONITONE_WARNINGS_AS_ERRORS=ON',
     "-DMONITONE_RELEASE_VERSION=$Version")
 Invoke-Checked cmake @('--build', $BuildDir, '--config', 'Release', '--parallel')
 
@@ -207,24 +246,22 @@ foreach ($file in 'Monitone.exe', 'MonitoneSettings.dll') {
 
 # --- Package -------------------------------------------------------------------------
 
-if (Test-Path $Dist) { Remove-Item $Dist -Recurse -Force }
 New-Item -ItemType Directory -Path $Dist -Force | Out-Null
 $base = "Monitone-$Version-x64"
 
 $stage = Join-Path $BuildDir "stage\$base"
-if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
-Copy-Item (Join-Path $bin 'Monitone.exe'), (Join-Path $bin 'MonitoneSettings.dll'), (Join-Path $Root 'README.md') $stage
-Copy-Item (Join-Path $Root 'LICENSE') (Join-Path $stage 'LICENSE.txt')
+Copy-Item (Join-Path $bin 'Monitone.exe'), (Join-Path $bin 'MonitoneSettings.dll'), (Join-Path $Source 'README.md') $stage
+Copy-Item (Join-Path $Source 'LICENSE') (Join-Path $stage 'LICENSE.txt')
 $zip = Join-Path $Dist "$base.zip"
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip
 
 $setup = Join-Path $Dist "$base-setup.exe"
 Invoke-Checked $makensis @('/V2', "/DVERSION=$Version", "/DBINDIR=$bin", "/DOUTFILE=$setup",
-    (Join-Path $Root 'installer\Monitone.nsi'))
+    (Join-Path $Source 'installer\Monitone.nsi'))
 
 $msi = Join-Path $Dist "$base.msi"
-Invoke-Checked $wix @('build', (Join-Path $Root 'installer\Monitone.wxs'), '-arch', 'x64',
+Invoke-Checked $wix @('build', (Join-Path $Source 'installer\Monitone.wxs'), '-arch', 'x64',
     '-ext', 'WixToolset.Util.wixext', '-d', "Version=$Version", '-d', "BinDir=$bin", '-o', $msi)
 Get-ChildItem $Dist -Filter '*.wixpdb' | Remove-Item -Force
 
@@ -248,4 +285,5 @@ Write-Host "Release candidate $Version is ready in $Dist" -ForegroundColor Green
 $sums | ForEach-Object { Write-Host "  $_" }
 Write-Host ''
 Write-Host 'Test the zip, the setup and the MSI. Edit release-notes.md there if you like. Then:'
-Write-Host '  tools\publish-release.ps1'
+if ($PSBoundParameters.ContainsKey('WorkDir')) { Write-Host "  tools\publish-release.ps1 -WorkDir `"$WorkDir`"" }
+else { Write-Host '  tools\publish-release.ps1' }
