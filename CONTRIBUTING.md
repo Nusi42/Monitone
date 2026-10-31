@@ -42,6 +42,7 @@ They drive versioning and the changelog, so the type matters:
 
 Pull requests are squash-merged, so the PR title becomes the commit message
 and must follow the same format.
+The commit-msg hook checks the subject (see [docs/BUILDING.md](docs/BUILDING.md#git-hooks)).
 
 ## Versions and releases
 
@@ -91,8 +92,9 @@ tools\publish-release.ps1         # commits, tags, pushes, creates the GitHub re
 
 ## Code
 
-- C++20, formatted with the repository `.clang-format`.
+- C++20, formatted with the repository `.clang-format` (the pre-commit hook
+  checks staged files).
 - Build with `-DMONITONE_WARNINGS_AS_ERRORS=ON` before pushing.
 - Keep history linear: update a branch with `git rebase main`, not by merging
   `main` into it. The pre-push hook refuses merge commits; the first CMake
-  configure enables it (see [docs/BUILDING.md](docs/BUILDING.md)).
+  configure enables the hooks (see [docs/BUILDING.md](docs/BUILDING.md#git-hooks)).

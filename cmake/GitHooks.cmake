@@ -1,5 +1,5 @@
-# Points git at the repository's hooks in .githooks (pre-push: the
-# linear-history check), so a fresh clone gets them with its first configure.
+# Points git at the repository's hooks in .githooks (pre-commit, commit-msg,
+# pre-push), so a fresh clone gets them with its first configure.
 # Run by CMakeLists.txt at configure time; also usable on its own:
 #   cmake -DSOURCE_DIR=<checkout> -P cmake/GitHooks.cmake
 # Does nothing outside a git checkout (a source archive) or without git, and
