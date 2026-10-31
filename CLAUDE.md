@@ -116,7 +116,7 @@ UI check without Windows: `node tools/ui-preview/preview.mjs build/ui-preview`
 
 `tools\build-release.ps1 -DryRun`, then `tools\build-release.ps1` (builds
 the candidate into `build\release-candidate\dist`, no git changes), the owner tests,
-then `tools\publish-release.ps1`. The first release is 0.1.0. Details:
+then `tools\publish-release.ps1`. The first release is 1.0.0. Details:
 `CONTRIBUTING.md`.
 
 ## Status at handover
