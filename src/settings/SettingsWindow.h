@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include <objbase.h>
+
 #include <atomic>
 #include <memory>
 
