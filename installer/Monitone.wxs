@@ -35,8 +35,9 @@
       </Directory>
     </StandardDirectory>
 
-    <!-- Files in the user profile need a registry key path (ICE38). -->
-    <Component Id="Application" Directory="INSTALLFOLDER" Guid="*">
+    <!-- Files in the user profile need a registry key path (ICE38), so the
+         component GUIDs are fixed; never change them. -->
+    <Component Id="Application" Directory="INSTALLFOLDER" Guid="6C10910F-2343-4FC7-912A-3857AD38E626">
       <File Id="MonitoneExe" Source="$(var.BinDir)\Monitone.exe" />
       <File Id="MonitoneSettingsDll" Source="$(var.BinDir)\MonitoneSettings.dll" />
       <File Id="License" Source="$(sys.SOURCEFILEDIR)..\LICENSE" Name="LICENSE.txt" />
@@ -46,7 +47,7 @@
       <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
     </Component>
 
-    <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder" Guid="*">
+    <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder" Guid="D9B422A1-05D0-4B2E-855C-588D76CC83D4">
       <Shortcut Id="MonitoneShortcut" Name="Monitone" Target="[#MonitoneExe]" WorkingDirectory="INSTALLFOLDER" />
       <RegistryValue Root="HKCU" Key="Software\Monitone\Installer" Name="Shortcut" Type="integer" Value="1"
                      KeyPath="yes" />
