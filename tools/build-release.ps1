@@ -29,7 +29,8 @@
     Test the packages, then publish them with tools\publish-release.ps1. If a
     test fails, fix it, commit, and run this script again.
 
-    Needs Visual Studio 2022 (C++ and CMake tools), NSIS 3 (makensis) and the
+    Needs Visual Studio 2022 (C++ and CMake tools), NSIS 3 (makensis; also found in
+    the copy Tauri keeps in %LOCALAPPDATA%\tauri\NSIS) and the
     WiX Toolset 5 .NET tool with the Util extension:
         winget install NSIS.NSIS
         dotnet tool install --global wix --version 5.0.2
@@ -216,7 +217,8 @@ if ($DryRun) { Write-Host 'Dry run: nothing built.' -ForegroundColor Yellow; ret
 # --- Build -------------------------------------------------------------------------
 
 Enter-DeveloperShell
-$makensis = Find-Tool 'makensis' @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe") `
+$makensis = Find-Tool 'makensis' @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe",
+    "$env:LOCALAPPDATA\tauri\NSIS\makensis.exe") `
     'Install NSIS 3: winget install NSIS.NSIS'
 $wix = Find-Tool 'wix' @("$env:USERPROFILE\.dotnet\tools\wix.exe") `
     'Install the WiX Toolset: dotnet tool install --global wix --version 5.0.2'
